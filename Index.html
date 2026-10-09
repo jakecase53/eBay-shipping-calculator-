@@ -1,0 +1,202 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eBay Shipping Calculator</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 18px;
+  font-family: Arial, sans-serif;
+  background: #f1f5f1;
+  color: #222;
+}
+.card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: white;
+  padding: 22px;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px #0001;
+}
+h1 { margin-top: 0; color: #176b3a; font-size: 25px; }
+p { color: #555; }
+label {
+  display: block;
+  margin-top: 16px;
+  font-weight: bold;
+  font-size: 14px;
+}
+input {
+  width: 100%;
+  padding: 13px;
+  margin-top: 7px;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  font-size: 17px;
+  background: white;
+  color: #222;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.calculate { background: #176b3a; color: white; }
+.clear { background: #e8ece8; color: #222; }
+.results {
+  display: none;
+  margin-top: 24px;
+  padding: 16px;
+  background: #eef8f0;
+  border-radius: 10px;
+}
+.results h2 { margin-top: 0; font-size: 20px; }
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #d4e4d7;
+}
+.result-row span:last-child {
+  font-weight: bold;
+  text-align: right;
+}
+.total { font-size: 18px; color: #176b3a; }
+.error { color: #b00020; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>📦 eBay Shipping Calculator</h1>
+  <p>Calculate your shipping label costs and see how much shipping money is left.</p>
+
+  <label for="order">Order Number (optional)</label>
+  <input id="order" type="text" placeholder="Enter eBay order number">
+
+  <label for="sale">Item Selling Price ($)</label>
+  <input id="sale" type="number" min="0" step="0.01" placeholder="0.00">
+
+  <label for="shipping">Shipping Paid by Buyer ($)</label>
+  <input id="shipping" type="number" min="0" step="0.01" placeholder="0.00">
+
+  <label for="label1">Shipping Label 1 Cost ($)</label>
+  <input id="label1" type="number" min="0" step="0.01" placeholder="0.00">
+
+  <label for="label2">Shipping Label 2 Cost ($)</label>
+  <input id="label2" type="number" min="0" step="0.01" placeholder="0.00">
+
+  <label for="fees">Other eBay Fees ($, optional)</label>
+  <input id="fees" type="number" min="0" step="0.01" placeholder="0.00">
+
+  <button class="calculate" onclick="calculate()">Calculate Totals</button>
+  <button class="clear" onclick="clearAll()">Clear All</button>
+
+  <div id="error" class="error"></div>
+
+  <div id="results" class="results" aria-live="polite">
+    <h2>Calculation Results</h2>
+    <div class="result-row">
+      <span>Order Number</span><span id="rOrder">—</span>
+    </div>
+    <div class="result-row">
+      <span>Item Selling Price</span><span id="rSale">$0.00</span>
+    </div>
+    <div class="result-row">
+      <span>Shipping Paid by Buyer</span><span id="rShipping">$0.00</span>
+    </div>
+    <div class="result-row">
+      <span>Label 1 Cost</span><span id="rLabel1">$0.00</span>
+    </div>
+    <div class="result-row">
+      <span>Label 2 Cost</span><span id="rLabel2">$0.00</span>
+    </div>
+    <div class="result-row">
+      <span>Total Shipping Labels</span><span id="rLabels">$0.00</span>
+    </div>
+    <div class="result-row">
+      <span>Shipping Money Left / (Overage)</span><span id="rDifference">$0.00</span>
+    </div>
+    <div class="result-row">
+      <span>Other eBay Fees</span><span id="rFees">$0.00</span>
+    </div>
+    <div class="result-row total">
+      <span>Estimated Amount After Labels & Fees</span>
+      <span id="rNet">$0.00</span>
+    </div>
+    <p>Estimate only. Enter the actual eBay fees to include them in your calculation. This does not include item cost, taxes, or other expenses.</p>
+  </div>
+</div>
+
+<script>
+function money(value) {
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD"
+  });
+}
+
+function getAmount(id) {
+  const field = document.getElementById(id);
+  const raw = field.value.trim();
+  if (raw === "") return 0;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Enter valid amounts of $0 or more in every money field.");
+  }
+  return value;
+}
+
+function calculate() {
+  const error = document.getElementById("error");
+  const results = document.getElementById("results");
+  error.textContent = "";
+  results.style.display = "none";
+
+  try {
+    const sale = getAmount("sale");
+    const shipping = getAmount("shipping");
+    const label1 = getAmount("label1");
+    const label2 = getAmount("label2");
+    const fees = getAmount("fees");
+
+    const labels = label1 + label2;
+    const difference = shipping - labels;
+    const net = sale + shipping - labels - fees;
+
+    document.getElementById("rOrder").textContent =
+      document.getElementById("order").value.trim() || "—";
+    document.getElementById("rSale").textContent = money(sale);
+    document.getElementById("rShipping").textContent = money(shipping);
+    document.getElementById("rLabel1").textContent = money(label1);
+    document.getElementById("rLabel2").textContent = money(label2);
+    document.getElementById("rLabels").textContent = money(labels);
+    document.getElementById("rDifference").textContent = money(difference);
+    document.getElementById("rFees").textContent = money(fees);
+    document.getElementById("rNet").textContent = money(net);
+
+    results.style.display = "block";
+  } catch (e) {
+    error.textContent = e.message;
+  }
+}
+
+function clearAll() {
+  ["order", "sale", "shipping", "label1", "label2", "fees"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("results").style.display = "none";
+  document.getElementById("error").textContent = "";
+}
+</script>
+</body>
+</html>
